@@ -1,5 +1,11 @@
 import rospy, subprocess, simple_robotino_messages.srv
 
+#
+#
+# obsolete!
+#
+#
+
 subprocesshandle = None
 
 def srvcb(request):
