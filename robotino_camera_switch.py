@@ -17,9 +17,12 @@ if internal_false_suppress > 12:
 
 accu_cam = rospy.Publisher("accurate_cameras_on", std_msgs.msg.Bool, latch=True, queue_size=1)
 accu_cam.publish(False)
+cam_state = 'coarse'
 # coar_cam = rospy.Publisher("coarse_cameras", std_msgs.msg.Bool, latch=True, queue_size=1)
 
 while not rospy.is_shutdown():
+
+
     rate.sleep()
     lookup_fail_count = 0
     if internal_false_suppress > 20:
@@ -30,6 +33,9 @@ while not rospy.is_shutdown():
             trans = tfBuffer.lookup_transform(accurate_ar_marker_names[i], 'world', rospy.Time())
             print accurate_ar_marker_names[i], 'detected'
             accurate_ar_marker_names_count[i] = accurate_ar_marker_names_count[i] + 1
+            if False: #if already in accurate:
+                lookup_fail_count = 0
+                lookup_fail_count2 = 0
             if accurate_ar_marker_names_count[i] > 8:
                 # % handle change to accurate
                 accu_cam.publish(True)

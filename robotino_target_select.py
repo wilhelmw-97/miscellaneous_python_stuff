@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # this is the node1
 
-import rospy, tf, tf2_ros, geometry_msgs.msg, std_msgs.msg, std_srvs.srv, time, subprocess
+import rospy, tf, tf2_ros, geometry_msgs.msg, std_msgs.msg, std_srvs.srv, time, threading
 import simple_robotino_messages.srv
 
 
@@ -15,7 +15,12 @@ def interaction_complete_response(data):
     global interaction_complete
     interaction_complete = True
 
-class waypoint(object):
+def delayed_wait():
+    global robotino_state
+    time.sleep(4)
+    robotino_state = 'wait'
+
+class Waypoint(object):
     def __init__(self, ix, iy, iomg, is_accurate):
         self.x = ix
         self.y = iy
@@ -37,7 +42,7 @@ rate = rospy.Rate(5)
 currentpose = []
 
 
-waypoints = [waypoint(1,1,90,False), waypoint(3,3,180,True)]
+waypoints = [Waypoint(1,1,90,False), Waypoint(3,3,180,True)]
 current_wp_index = 0
 while not rospy.is_shutdown():
     rate.sleep()
@@ -61,37 +66,38 @@ while not rospy.is_shutdown():
 
     if runawaycount <= 0: rospy.logerr('node 1 cannot find robotino coordinate!')
 
-    if robotino_state == 'coarse':
+    if Waypoint[current_wp_index].isaccurate == False:
 
 
-            if waypoint[current_wp_index].distance_squared(currentpose[0], currentpose[1]) < 0.01 \
-                    and -10 < waypoint[current_wp_index].theta - currentpose[2] < 10     :
+            if Waypoint[current_wp_index].distance_squared(currentpose[0], currentpose[1]) < 0.01 \
+                    and -10 < Waypoint[current_wp_index].theta - currentpose[2] < 10     :
 
-                if waypoint[current_wp_index].isaccurate == False :
+#                if Waypoint[current_wp_index].isaccurate == False :
 
                     current_wp_index = current_wp_index + 1
 
-                else:
+#                else:
                     # process camera selection, etc
                     # actually, camera selection will be done on finding specific markers
                     # here nothing is done
-                    pass
+#                   pass
             # also look for accurate markers
 
 
-    if robotino_state == 'accurate':
+    if Waypoint[current_wp_index].isaccurate == True:
 
-        if waypoint[current_wp_index].distance_squared(currentpose[0], currentpose[1]) < 0.025 \
-                and 7 < waypoint[current_wp_index].theta - currentpose[2] < 7:
-            robotino_state == 'wait'
+        if Waypoint[current_wp_index].distance_squared(currentpose[0], currentpose[1]) < 0.025 \
+                and 7 < Waypoint[current_wp_index].theta - currentpose[2] < 7:
+            ta = threading.Thread(target=delayed_wait)
+            ta.start()
 
 
 
     if robotino_state == 'wait':
-        if interaction_complete: # % wait for external interactions completion: give new waypoint
+        if interaction_complete == True: # % wait for external interactions completion: give new waypoint
             interaction_complete = False
-            robotino_state = 'coarse'
-            # process camera selections, ...
+            # robotino_state = 'coarse'
+            #
 
             current_wp_index = current_wp_index + 1
             if current_wp_index > len(waypoints): current_wp_index = 0
