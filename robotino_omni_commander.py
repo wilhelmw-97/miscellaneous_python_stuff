@@ -1,4 +1,3 @@
-#
 #!/usr/bin/env python
 import rospy, std_msgs.msg, geometry_msgs.msg, tf2_ros, tf
 import sys, math
