@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*-
+#
 
 import rospy, std_msgs.msg, geometry_msgs.msg, tf2_ros, tf
 import sys, math, simple_robotino_messages.msg, math
@@ -12,7 +12,7 @@ def target_callback(data):
 
 def robloc_callback(data):
     global currentpose
-    currentpose = [-data.x, -data.y, -data.theta]
+    currentpose = [data.x, data.y, data.theta]
 
 
 #def distances_callback(data):
@@ -33,7 +33,9 @@ rospy.Subscriber('target_location', geometry_msgs.msg.Pose2D, target_callback)
 rospy.Subscriber('robotino_location', geometry_msgs.msg.Pose2D, robloc_callback)
 cmd_vel_pub = rospy.Publisher('cmd_vel', geometry_msgs.msg.Twist, queue_size=1)
 # rospy.Subscriber('distances', simple_robotino_messages.msg.RobotinoDistanceArray, distances_callback)
-
+Jcount = 50
+out1 = 0
+xout, yout, rout = 0,0,0
 
 while not rospy.is_shutdown():
     rate.sleep()
@@ -63,7 +65,7 @@ while not rospy.is_shutdown():
 # diffx, diffy, difftheta(in degrees)
 #
 
-    Jcount = 50
+
 
     if (out1 == 0):
         rout = difftheta

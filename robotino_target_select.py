@@ -6,16 +6,17 @@ import rospy, tf, tf2_ros, geometry_msgs.msg, std_msgs.msg, std_srvs.srv, time, 
 import simple_robotino_messages.srv
 
 subprocess.Popen(['rosrun', 'tf2_ros', 'static_transform_publisher', \
-                  0,0,0,0,0,0, 'ar_8_actual', 'robotino_from_ar_8'])
+                  '0','0','0','0','0','0', 'ar_8_actual', 'robotino_from_ar_8'])
 
-accurate_frames=['robotino_from_ar_8', 'non_existent_frame1', 'non_existent_frame_2']
+accurate_frames=['ar_marker_8_corrected', 'ar_marker_8_corrected', 'ar_marker_8_corrected']
 
 robotino_state = 'coarse' # may be useful for UI: wait state or not wait state?
 
 #def target_callback(data):
 #    global  robotino_state
 #    robotino_state = data.data
-
+runawaycount = 0
+n = 0
 def interaction_complete_response(data):
     global interaction_complete
     interaction_complete = True
@@ -44,15 +45,15 @@ rospy.ServiceProxy('interaction_complete', std_srvs.srv.Empty, interaction_compl
 tfBuffer = tf2_ros.Buffer()
 listener = tf2_ros.TransformListener(tfBuffer)
 robotino_frame_name = rospy.get_param('~robotino_name','robotino')
-rate = rospy.Rate(5)
-currentpose = []
+rate = rospy.Rate(30)
+currentpose = [0,0,0]
 ___succeeded = False
 
 
-waypoints = [Waypoint(1,1,90,False), Waypoint(3,3,180,True)]
+waypoints = [Waypoint(3,3,180,True)]
 
 
-
+trans = None
 current_wp_index = 0
 while not rospy.is_shutdown():
     rate.sleep()
@@ -81,10 +82,13 @@ while not rospy.is_shutdown():
 
 
 
+
+
     if ___succeeded:
+
         ___succeeded = False
         n = n + 1
-        runawaycount = 35
+        runawaycount = 45
         currentpose[0] = -trans.transform.translation.x
         currentpose[1] = -trans.transform.translation.y
         currentpose[2] = -(tf.transformations.euler_from_quaternion(
@@ -100,20 +104,24 @@ while not rospy.is_shutdown():
         if n % 10 == 0:
             tfBuffer = tf2_ros.Buffer()
             listener = tf2_ros.TransformListener(tfBuffer)
+            n = 0
+
+    if runawaycount <= 0:
+        rospy.logerr('node 1 cannot find robotino coordinate!')
+        continue
 
 
-
-    if runawaycount <= 0: rospy.logerr('node 1 cannot find robotino coordinate!')
-
-    if Waypoint[current_wp_index].isaccurate == False:
+    if waypoints[current_wp_index].isaccurate == False:
 
 
-            if Waypoint[current_wp_index].distance_squared(currentpose[0], currentpose[1]) < 0.01 \
-                    and -10 < Waypoint[current_wp_index].theta - currentpose[2] < 10 :
+            if waypoints[current_wp_index].distance_squared(currentpose[0], currentpose[1]) < 0.01 \
+                    and -10 < waypoints[current_wp_index].theta - currentpose[2] < 10 :
 
 #                if Waypoint[current_wp_index].isaccurate == False :
 
                     current_wp_index = current_wp_index + 1
+                    print 'waypoints incremented'
+                    if current_wp_index >= len(waypoints): current_wp_index = 0
 
 #                else:
                     # process camera selection, etc
@@ -123,10 +131,10 @@ while not rospy.is_shutdown():
             # also look for accurate markers
 
 
-    if Waypoint[current_wp_index].isaccurate == True:
+    if waypoints[current_wp_index].isaccurate == True:
 
-        if Waypoint[current_wp_index].distance_squared(currentpose[0], currentpose[1]) < 0.025 \
-                and 7 < Waypoint[current_wp_index].theta - currentpose[2] < 7:
+        if waypoints[current_wp_index].distance_squared(currentpose[0], currentpose[1]) < 0.025 \
+                and 7 < waypoints[current_wp_index].theta - currentpose[2] < 7:
             ta = threading.Thread(target=delayed_wait)
             ta.start()
 
@@ -139,17 +147,17 @@ while not rospy.is_shutdown():
             #
 
             current_wp_index = current_wp_index + 1
-            if current_wp_index > len(waypoints): current_wp_index = 0
+            if current_wp_index >= len(waypoints): current_wp_index = 0
 
 
 
     # % publish waypoint here
     if robotino_state != 'wait':
         targetmsg = geometry_msgs.msg.Pose2D()
-        targetmsg.x = waypoints[current_wp_index].x
+        targetmsg.x =  waypoints[current_wp_index].x
         targetmsg.y = waypoints[current_wp_index].y
         targetmsg.theta = waypoints[current_wp_index].theta
-        targetpub.publish()
+        targetpub.publish(targetmsg)
     # ######
 
 
